@@ -7,7 +7,7 @@ class ApiService {
   // Use '10.0.2.2' for Android Emulator to access localhost, 
   // or your actual local IP (e.g., '192.168.1.x') if testing on physical device.
   // For web, 'localhost' works.
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'http://t4cock0c04g40s0w8o8gswc4.167.86.90.159.sslip.io/api';
   
   final Logger _logger = Logger();
   
@@ -64,11 +64,13 @@ class ApiService {
       }),
     );
     
-    final data = jsonDecode(response.body);
-    if (response.statusCode == 201) {
+    _logger.d('Register Response: ${response.statusCode} - ${response.body}');
+    
+    final data = _handleResponse(response);
+    if (response.statusCode == 201 && data is Map) {
       await _setToken(data['access_token']);
     }
-    return _handleResponse(response);
+    return data;
   }
 
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -81,11 +83,11 @@ class ApiService {
       }),
     );
     
-    final data = jsonDecode(response.body);
-    if (response.statusCode == 200) {
+    final data = _handleResponse(response);
+    if (response.statusCode == 200 && data is Map) {
       await _setToken(data['access_token']);
     }
-    return _handleResponse(response);
+    return data;
   }
 
   Future<void> logout() async {
@@ -260,13 +262,30 @@ class ApiService {
 
   // --- Common Response Handling ---
 
-  Map<String, dynamic> _handleResponse(http.Response response) {
-    final body = jsonDecode(response.body);
+  dynamic _handleResponse(http.Response response) {
+    dynamic body;
+    try {
+      body = jsonDecode(response.body);
+    } catch (e) {
+      _logger.e('Failed to parse response: ${response.body}');
+      throw Exception('Server returned an invalid format. Status: ${response.statusCode}');
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     } else {
       _logger.e('API Error: ${response.statusCode} - $body');
-      throw Exception(body['message'] ?? 'Something went wrong');
+      
+      if (body is Map && body.containsKey('errors')) {
+        // Handle Laravel validation errors
+        final errors = body['errors'] as Map;
+        final firstError = errors.values.first;
+        if (firstError is List) {
+          throw Exception(firstError.first);
+        }
+      }
+      
+      throw Exception(body['message'] ?? 'Something went wrong (Error ${response.statusCode})');
     }
   }
 }

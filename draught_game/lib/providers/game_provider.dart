@@ -72,12 +72,16 @@ class GameProvider extends ChangeNotifier {
   }
 
   void _handleRemoteEvent(dynamic event) {
-    // Standard Pusher event data is often a JSON string within 'data'
-    final data = jsonDecode(event.data);
+    // Handling dart_pusher_channels event structure
+    final dynamic rawData = event.data;
+    final Map<String, dynamic> data = rawData is String ? jsonDecode(rawData) : rawData;
+    final String eventName = event.name ?? '';
     
-    switch (event.eventName) {
+    switch (eventName) {
       case 'move.made':
-        _updateBoardFromRemote(data['board_state']);
+        if (data['board_state'] != null) {
+          _updateBoardFromRemote(data['board_state']);
+        }
         currentTurn = data['current_turn'] == 'red' ? PieceColor.red : PieceColor.black;
         notifyListeners();
         break;
@@ -87,7 +91,6 @@ class GameProvider extends ChangeNotifier {
         break;
       case 'game.ended':
         gameStarted = false;
-        // Winner etc could be updated here
         notifyListeners();
         break;
     }

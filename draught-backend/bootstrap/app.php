@@ -12,9 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->validateCsrfTokens(except: []);
+        $middleware->validateCsrfTokens(except: [
+            'admin/login', // Temporary bypass for testing CSRF issues
+        ]);
         
-        // This ensures cookies are not marked 'secure' when on http
+        $middleware->trustProxies(at: '*');
+        
         $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {

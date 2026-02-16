@@ -30,7 +30,7 @@ class MoveMade implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('game.' . $this->game->id),
+            new Channel('game.' . $this->game->id),
         ];
     }
 
